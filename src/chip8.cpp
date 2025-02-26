@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <functional>
 #include <optional>
 
 Chip8::Chip8(std::shared_ptr<Chip8IO> io)
@@ -44,8 +45,6 @@ void Chip8::execOpcodeType0() {
       mStack.pop_back();
       break;
     }
-    default:
-      break;
   }
   return;
 }
@@ -168,12 +167,12 @@ void Chip8::execOpcodeTypeD() {
 
   for (uint16_t i = 0; i < opcodeN(); i++) {
     uint32_t newYCoord = yCoord + i;
-    if (newYCoord >= mIO->DISPLAY_HEIGHT) {
+    if (newYCoord >= mIO->DISPLAY_HEIGHT || newYCoord < 0) {
       continue;
     }
     for (uint16_t j = 0; j < 8; j++) {
       uint32_t newXCoord = xCoord + j;
-      if (newXCoord >= mIO->DISPLAY_WIDTH) {
+      if (newXCoord >= mIO->DISPLAY_WIDTH || newXCoord < 0) {
         continue;
       }
       uint8_t mask = 1 << (7 - j);
@@ -194,11 +193,15 @@ void Chip8::execOpcodeTypeD() {
 void Chip8::execOpcodeTypeE() {
   switch (opcodeN()) {
     case 0x1: {
-      // skip
+      if (!mIO->isKeyPressed(mRegisters[opcodeX()])) {
+        mPC += 2;
+      }
       break;
     }
     case 0xE: {
-      // skip
+      if (mIO->isKeyPressed(mRegisters[opcodeX()])) {
+        mPC += 2;
+      }
       break;
     }
   }
@@ -221,7 +224,19 @@ void Chip8::execOpcodeTypeF() {
       break;
     }
     case 0x0A: {
-      // for later
+      bool keyPressed = false;
+      for (uint8_t i = 0; i < mIO->NUM_KEYS; i++) {
+        if (mIO->isKeyPressed(i)) {
+          mRegisters[opcodeX()] = i;
+          keyPressed = true;
+          break;
+        }
+      }
+
+      if (!keyPressed) {
+        mPC -= 2;
+      }
+
       break;
     }
     case 0x29: {
@@ -238,8 +253,8 @@ void Chip8::execOpcodeTypeF() {
       while (digits.size() < 3) {
         digits.push_back(0);
       }
-      for (int i = digits.size() - 1; i >= 0; i--) {
-        mMemory[mI + digits.size() - 1 - i] = digits[i];
+      for (int i = 2; i >= 0; i--) {
+        mMemory[mI + 2 - i] = digits[i];
       }
       break;
     }
@@ -259,15 +274,16 @@ void Chip8::execOpcodeTypeF() {
 }
 
 void Chip8::loadROM(std::ifstream &ROM, std::streamsize size) {
-  if (!ROM.read(reinterpret_cast<char *>(mMemory.data() + ROM_START_ADDRESS),
-                size)) {
+  if (!ROM.read(
+          reinterpret_cast<char *>(std::begin(mMemory) + ROM_START_ADDRESS),
+          size)) {
     std::cout << "Could no read ROM\n";
     exit(1);
   }
 }
 
 void Chip8::loadFont(uint8_t font[], size_t size) {
-  memcpy(mMemory.data() + FONT_START_ADDRESS, font, size);
+  memcpy(std::begin(mMemory) + FONT_START_ADDRESS, font, size);
 }
 
 void Chip8::updateTimers() {
@@ -348,6 +364,9 @@ void Chip8::runCycle() {
       execOpcodeTypeF();
       break;
     }
+    default:
+      std::cout << "opcode type not recognized\n";
+      exit(1);
   }
   mOpcode = std::nullopt;
 }

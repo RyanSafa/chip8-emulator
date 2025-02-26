@@ -1,5 +1,7 @@
 #include "chip8_io.h"
 
+#include <SDL2/SDL_keyboard.h>
+
 #include <cassert>
 #include <cstring>
 #include <iostream>
@@ -54,7 +56,14 @@ Chip8IO::Chip8IO(uint32_t scaleFactor, uint32_t onColor, uint32_t offColor)
       mWindow(createWindow()),
       mRenderer(createRenderer()),
       mTexture(createTexture()),
-      mPrevFrameDisplay(offColor){};
+      srcRect({0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT}),
+      destRect(
+          {0, 0, DISPLAY_WIDTH * mScaleFactor, DISPLAY_HEIGHT * mScaleFactor}) {
+  mDisplayBuffer.fill(offColor);
+  for (const std::string& key : KEYS) {
+    mKeyPressed[key] = false;
+  }
+};
 
 Chip8IO::~Chip8IO() {
   SDL_DestroyTexture(mTexture);
@@ -63,46 +72,59 @@ Chip8IO::~Chip8IO() {
   SDL_Quit();
 }
 
-void Chip8IO::beginFrame() {
+void Chip8IO::renderFrame() {
   void* pixels;
   int pitch = DISPLAY_WIDTH;
   SDL_LockTexture(mTexture, NULL, &pixels, &pitch);
-  mCurrentFrameDisplay = static_cast<uint32_t*>(pixels);
-}
+  uint32_t* textureBuffer = static_cast<uint32_t*>(pixels);
+  memcpy(textureBuffer, std::begin(mDisplayBuffer),
+         DISPLAY_WIDTH * DISPLAY_HEIGHT * sizeof(uint32_t));
 
-void Chip8IO::endFrame() {
-  SDL_Rect srcRect = {0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT};
-  SDL_Rect destRect = {0, 0, DISPLAY_WIDTH * mScaleFactor,
-                       DISPLAY_HEIGHT * mScaleFactor};
   SDL_UnlockTexture(mTexture);
   SDL_RenderCopy(mRenderer, mTexture, &srcRect, &destRect);
   SDL_RenderPresent(mRenderer);
-  memcpy(mPrevFrameDisplay, mCurrentFrameDisplay,
-         DISPLAY_WIDTH * DISPLAY_HEIGHT);
-  mCurrentFrameDisplay = nullptr;
 }
 
 uint32_t Chip8IO::getDisplayColor(uint32_t x, uint32_t y) {
-  assert(mPrevFrameDisplay);
-  return mPrevFrameDisplay[y * DISPLAY_WIDTH + x];
+  assert(x < DISPLAY_WIDTH && y < DISPLAY_HEIGHT);
+
+  return mDisplayBuffer[(y * DISPLAY_WIDTH) + x];
 }
 
 void Chip8IO::writeToDisplay(uint32_t x, uint32_t y, bool on) {
-  assert(mCurrentFrameDisplay);
   assert(x < DISPLAY_WIDTH && y < DISPLAY_HEIGHT);
 
   uint32_t index = (y * DISPLAY_WIDTH) + x;
-  on ? mCurrentFrameDisplay[index] = mOnColor
-     : mCurrentFrameDisplay[index] = mOffColor;
+  on ? mDisplayBuffer[index] = mOnColor : mDisplayBuffer[index] = mOffColor;
 }
 
 bool Chip8IO::pollInput() {
   SDL_Event e;
   while (SDL_PollEvent(&e) > 0) {
     switch (e.type) {
-      case SDL_QUIT:
+      case SDL_QUIT: {
         return true;
+        break;
+      }
+      case SDL_KEYUP: {
+        SDL_Keycode key = e.key.keysym.sym;
+        std::string keyName = std::string(SDL_GetKeyName(key));
+        if (mKeyPressed.count(keyName) > 0) {
+          mKeyPressed[keyName] = false;
+        }
+        break;
+      }
+      case SDL_KEYDOWN: {
+        SDL_Keycode key = e.key.keysym.sym;
+        std::string keyName = std::string(SDL_GetKeyName(key));
+        if (mKeyPressed.count(keyName) > 0) {
+          mKeyPressed[keyName] = true;
+        }
+        break;
+      }
     }
   }
   return false;
 }
+
+bool Chip8IO::isKeyPressed(uint8_t keyNum) { return mKeyPressed[KEYS[keyNum]]; }

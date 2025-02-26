@@ -3,5 +3,6 @@ test-roms/
 
 .cache/
 .clang-format
+*.py
 *.sh
 *.json
