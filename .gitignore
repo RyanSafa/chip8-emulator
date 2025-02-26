@@ -1,0 +1,7 @@
+build/
+test-roms/
+
+.cache/
+.clang-format
+*.sh
+*.json
