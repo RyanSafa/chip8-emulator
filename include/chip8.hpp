@@ -38,6 +38,7 @@ class Chip8 {
   uint8_t opcodeNN();
   uint16_t opcodeNNN();
 
+  void skipPC();
   void setVF(uint8_t value);
 
   void execOpcodeType0();

@@ -27,6 +27,8 @@ uint8_t Chip8::opcodeNN() { return *mOpcode & 0x00FF; }
 
 uint16_t Chip8::opcodeNNN() { return *mOpcode & 0x0FFF; }
 
+void Chip8::skipPC() { mPC += 2; }
+
 void Chip8::setVF(uint8_t value) { mRegisters[0xF] = value; }
 
 void Chip8::execOpcodeType0() {
@@ -57,19 +59,19 @@ void Chip8::execOpcodeType2() {
 
 void Chip8::execOpcodeType3() {
   if (mRegisters[opcodeX()] == opcodeNN()) {
-    mPC += 2;
+    skipPC();
   }
 }
 
 void Chip8::execOpcodeType4() {
   if (mRegisters[opcodeX()] != opcodeNN()) {
-    mPC += 2;
+    skipPC();
   }
 }
 
 void Chip8::execOpcodeType5() {
   if (mRegisters[opcodeX()] == mRegisters[opcodeY()]) {
-    mPC += 2;
+    skipPC();
   }
 }
 
@@ -147,7 +149,7 @@ void Chip8::execOpcodeType8() {
 }
 void Chip8::execOpcodeType9() {
   if (mRegisters[opcodeX()] != mRegisters[opcodeY()]) {
-    mPC += 2;
+    skipPC();
   }
 }
 
@@ -191,13 +193,13 @@ void Chip8::execOpcodeTypeE() {
   switch (opcodeN()) {
     case 0x1: {
       if (!mIO->isKeyPressed(mRegisters[opcodeX()])) {
-        mPC += 2;
+        skipPC();
       }
       break;
     }
     case 0xE: {
       if (mIO->isKeyPressed(mRegisters[opcodeX()])) {
-        mPC += 2;
+        skipPC();
       }
       break;
     }
@@ -301,7 +303,7 @@ void Chip8::updateTimers() {
 
 void Chip8::runCycle() {
   mOpcode = (mMemory[mPC] << 8) | mMemory[mPC + 1];
-  mPC += 2;
+  skipPC();
 
   switch (opcodeType()) {
     case 0x0: {
