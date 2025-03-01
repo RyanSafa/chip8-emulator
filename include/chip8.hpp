@@ -1,14 +1,14 @@
 #pragma once
 #include <array>
 #include <cstdint>
+#include <fstream>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <random>
 #include <vector>
-#include <fstream>
-#include <iostream>
 
-#include "chip8_io.h"
+#include "chip8_io.hpp"
 
 class Chip8 {
  private:
@@ -22,8 +22,8 @@ class Chip8 {
   std::uniform_int_distribution<uint8_t> mDistrib;
 
   std::optional<uint16_t> mOpcode{};
-  uint16_t mPC{};  // program counter
-  uint16_t mI{};   // void pointer to memory address
+  uint16_t mPC{};                                   // program counter
+  uint16_t mI{};                                    // pointer to memory address
   std::array<uint8_t, REGISTERS_COUNT> mRegisters;  // registers V0, ..., VF
   uint8_t mDelayTimer{};                            // delay timer
   uint8_t mSoundTimer{};                            // sound timer

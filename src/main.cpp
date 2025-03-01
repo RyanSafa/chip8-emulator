@@ -4,16 +4,15 @@
 #include <string>
 #include <thread>
 
-#include "chip8.h"
-#include "chip8_io.h"
+#include "chip8.hpp"
+#include "chip8_io.hpp"
 
 const uint32_t TARGET_FRAME_RATE = 60;
 const uint32_t TARGET_FRAME_TIME_MICRO_SECONDS = 1000000 / TARGET_FRAME_RATE;
 
 void loadROM(Chip8& chip8, const char* ROMPath) {
-	printf("%s\n", ROMPath);
-  std::ifstream file(ROMPath,
-                     std::ios::binary | std::ios::ate);
+  printf("%s\n", ROMPath);
+  std::ifstream file(ROMPath, std::ios::binary | std::ios::ate);
 
   if (!file.is_open()) {
     std::cout << "File was not openned\n";
@@ -25,8 +24,8 @@ void loadROM(Chip8& chip8, const char* ROMPath) {
   chip8.loadROM(file, size);
 }
 
-void loadFont(Chip8& chip8)	{
-	const uint32_t FONT_SIZE = 80;
+void loadFont(Chip8& chip8) {
+  const uint32_t FONT_SIZE = 80;
   uint8_t font[FONT_SIZE]{
       0xF0, 0x90, 0x90, 0x90, 0xF0,  // 0
       0x20, 0x60, 0x20, 0x20, 0x70,  // 1
@@ -48,7 +47,8 @@ void loadFont(Chip8& chip8)	{
   chip8.loadFont(font, FONT_SIZE);
 }
 
-void runEmulator(Chip8& chip8, std::shared_ptr<Chip8IO> chip8IO, uint32_t instructionsPerSecond) {
+void runEmulator(Chip8& chip8, std::shared_ptr<Chip8IO> chip8IO,
+                 uint32_t instructionsPerSecond) {
   const auto targetFrameDuration =
       std::chrono::microseconds(TARGET_FRAME_TIME_MICRO_SECONDS);
 
@@ -103,9 +103,9 @@ int main(int argc, char* argv[]) {
       std::make_unique<Chip8IO>(scaleFactor, primaryColor, backgroundColor);
   Chip8 chip8 = Chip8(chip8IO);
 
-	loadROM(chip8, ROMPath);
-	loadFont(chip8);
-	
-	runEmulator(chip8, chip8IO, instructionsPerFrame);
+  loadROM(chip8, ROMPath);
+  loadFont(chip8);
+
+  runEmulator(chip8, chip8IO, instructionsPerFrame);
   return 0;
 }

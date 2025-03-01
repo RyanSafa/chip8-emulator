@@ -1,8 +1,7 @@
-#include "chip8.h"
+#include "chip8.hpp"
 
 #include <cassert>
 #include <cstring>
-#include <functional>
 #include <optional>
 
 Chip8::Chip8(std::shared_ptr<Chip8IO> io)
@@ -184,8 +183,6 @@ void Chip8::execOpcodeTypeD() {
           setVF(1);
         }
         mIO->writeToDisplay(newXCoord, newYCoord, !prevFrameOn);
-      } else {
-        mIO->writeToDisplay(newXCoord, newYCoord, prevFrameOn);
       }
     }
   }
@@ -214,6 +211,10 @@ void Chip8::execOpcodeTypeF() {
     }
     case 0x15: {
       mDelayTimer = mRegisters[opcodeX()];
+      break;
+    }
+    case 0x18: {
+      mSoundTimer = mRegisters[opcodeX()];
       break;
     }
     case 0x1E: {
@@ -292,6 +293,9 @@ void Chip8::updateTimers() {
   }
   if (mSoundTimer > 0) {
     mSoundTimer--;
+    mIO->playSound();
+  } else {
+    mIO->pauseSound();
   }
 }
 
